@@ -1,0 +1,20 @@
+{
+  "name": "liquidmetal-livesub-backend",
+  "version": "2.0.0",
+  "type": "module",
+  "description": "Real-time Thai to English subtitle backend",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "@deepgram/sdk": "^3.3.0",
+    "ws": "^8.17.0",
+    "node-fetch": "^3.3.2",
+    "cors": "^2.8.5",
+    "express": "^4.19.2"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
