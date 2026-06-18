@@ -3,7 +3,6 @@ import { createServer } from "http";
 import { WebSocketServer, WebSocket } from "ws";
 import { createClient, LiveTranscriptionEvents } from "@deepgram/sdk";
 import fetch from "node-fetch";
-import admin from "firebase-admin";
 import cors from "cors";
 
 // ── CONFIG ──
@@ -12,20 +11,6 @@ const DEEPGRAM_KEY = process.env.DEEPGRAM_KEY;
 const ANTHROPIC_KEY= process.env.ANTHROPIC_KEY;
 const FIREBASE_URL = process.env.FIREBASE_URL;
 const GATE_PASS    = process.env.GATE_PASS;
-
-// ── FIREBASE INIT ──
-if (!admin.apps.length) {
-  admin.initializeApp({
-    databaseURL: FIREBASE_URL,
-    credential: admin.credential.applicationDefault().catch
-      ? admin.credential.cert({
-          projectId: "liquidmetalpublishing-b0178",
-          clientEmail: "firebase-adminsdk@liquidmetalpublishing-b0178.iam.gserviceaccount.com",
-          privateKey: "placeholder"
-        })
-      : admin.credential.applicationDefault()
-  });
-}
 
 // Use REST API for Firebase instead of admin SDK to avoid cert issues
 async function firebaseSet(path, data) {
