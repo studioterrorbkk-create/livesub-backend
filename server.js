@@ -139,6 +139,7 @@ async function translateWithClaude(thai) {
 
 // ── DEEPGRAM STREAMING ──
 function startDeepgramSession(roomCode, ws) {
+  console.log(`[${roomCode}] Creating Deepgram client. Key present: ${!!DEEPGRAM_KEY}, key length: ${DEEPGRAM_KEY?.length}`);
   const deepgram = createClient(DEEPGRAM_KEY);
   const queue = new TranslateQueue(roomCode);
 
@@ -155,8 +156,12 @@ function startDeepgramSession(roomCode, ws) {
   });
 
   live.on(LiveTranscriptionEvents.Open, () => {
-    console.log(`[${roomCode}] Deepgram connected`);
+    console.log(`[${roomCode}] Deepgram CONNECTED successfully`);
     ws.send(JSON.stringify({ type: "deepgram_ready" }));
+  });
+
+  live.on("close", (e) => {
+    console.log(`[${roomCode}] Deepgram connection closed:`, e);
   });
 
   live.on(LiveTranscriptionEvents.Transcript, async (data) => {
@@ -236,6 +241,8 @@ wss.on("connection", (ws) => {
       const session = sessions.get(roomCode);
       if (session?.live?.getReadyState() === 1) {
         session.live.send(raw);
+      } else {
+        console.log(`[${roomCode}] Binary audio received but Deepgram not ready. session exists: ${!!session}, live exists: ${!!session?.live}`);
       }
       return;
     }
@@ -243,7 +250,9 @@ wss.on("connection", (ws) => {
     // Parse JSON message
     let msg;
     try { msg = JSON.parse(raw.toString()); }
-    catch(e) { return; }
+    catch(e) { console.error("JSON parse error:", e.message); return; }
+
+    console.log(`[WS MSG] type=${msg.type} roomCode=${roomCode} role=${role}`);
 
     switch(msg.type) {
 
@@ -297,8 +306,13 @@ wss.on("connection", (ws) => {
       }
 
       case "start_listening": {
+        console.log(`[${roomCode}] start_listening received. Sessions map has: ${[...sessions.keys()].join(",")}`);
         const session = sessions.get(roomCode);
-        if (!session) break;
+        if (!session) {
+          console.log(`[${roomCode}] ERROR: No session found for this roomCode!`);
+          break;
+        }
+        console.log(`[${roomCode}] Starting Deepgram session...`);
 
         // Start Deepgram
         const { live, queue } = startDeepgramSession(roomCode, ws);
