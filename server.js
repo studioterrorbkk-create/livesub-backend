@@ -197,9 +197,11 @@ wss.on("connection", (ws) => {
     }
 
     // JSON message
+    let rawStr = raw.toString();
+    console.log(`[WS RAW] first100chars: ${rawStr.substring(0,100)} | isBuffer: ${Buffer.isBuffer(raw)} | type: ${typeof raw}`);
     let msg;
-    try { msg = JSON.parse(raw.toString()); }
-    catch(e) { console.error("JSON parse error:", e.message); return; }
+    try { msg = JSON.parse(rawStr); }
+    catch(e) { console.error("JSON parse error:", e.message, "raw:", rawStr.substring(0,50)); return; }
 
     console.log(`[WS] type=${msg.type} room=${roomCode} role=${role}`);
 
