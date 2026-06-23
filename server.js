@@ -183,25 +183,31 @@ wss.on("connection", (ws) => {
   let role = null;
   console.log("New WS connection");
 
-  ws.on("message", async (raw) => {
-    // Binary = audio data from host mic
-    if (Buffer.isBuffer(raw) || raw instanceof ArrayBuffer) {
-      if (!roomCode || role !== "host") return;
+  ws.on("message", async (raw, isBinary) => {
+    // Log every message type for debugging
+    console.log(`[WS MSG] isBinary=${isBinary} isBuffer=${Buffer.isBuffer(raw)} size=${raw.length || raw.byteLength} room=${roomCode} role=${role}`);
+
+    // If binary AND we already have a host session with Deepgram running = audio data
+    if (isBinary && roomCode && role === "host") {
       const room = rooms.get(roomCode);
-      if (!room) return;
-      if (room.deepgramLive && room.deepgramLive.getReadyState() === 1) {
+      if (room?.deepgramLive && room.deepgramLive.getReadyState() === 1) {
         room.deepgramLive.send(raw);
+        return; // silent — too noisy to log
       }
-      // Don't log audio packets — too noisy
+      // Binary but no Deepgram yet — might be start_listening hasn't arrived
+      console.log(`[${roomCode}] Binary before Deepgram ready`);
       return;
     }
 
-    // JSON message
-    let rawStr = raw.toString();
-    console.log(`[WS RAW] first100chars: ${rawStr.substring(0,100)} | isBuffer: ${Buffer.isBuffer(raw)} | type: ${typeof raw}`);
+    // Parse as JSON (text frame OR binary frame containing JSON)
+    let rawStr;
+    try { rawStr = Buffer.isBuffer(raw) ? raw.toString("utf8") : raw.toString(); }
+    catch(e) { console.error("toString error:", e.message); return; }
+
+    console.log(`[WS JSON] ${rawStr.substring(0,120)}`);
     let msg;
     try { msg = JSON.parse(rawStr); }
-    catch(e) { console.error("JSON parse error:", e.message, "raw:", rawStr.substring(0,50)); return; }
+    catch(e) { console.error("JSON parse error:", e.message, "raw:", rawStr.substring(0,80)); return; }
 
     console.log(`[WS] type=${msg.type} room=${roomCode} role=${role}`);
 
